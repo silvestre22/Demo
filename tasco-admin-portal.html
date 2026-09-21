@@ -1,0 +1,886 @@
+<title>Tasco Back Office</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#f6f3ee; --surface:#ffffff; --surface-tint:#fbeded;
+    --ink:#1c1a17; --ink-soft:#6b6357; --line:#e8e1d6;
+    --red:#d81e2c; --red-dark:#a61220; --red-soft:#fbe4e3;
+    --green:#1e8e5a; --green-soft:#e1f3e9;
+    --amber:#9c6a15; --amber-soft:#fbeeda;
+    --shadow-1:0 1px 2px rgba(28,26,23,.08); --shadow-2:0 14px 34px rgba(28,26,23,.14);
+    --radius-s:10px; --radius-m:16px; --radius-l:24px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#141210; --surface:#1e1b18; --surface-tint:#2a1a19;
+      --ink:#f3efe8; --ink-soft:#b6aca0; --line:#33302a;
+      --red:#ff5a63; --red-dark:#ff8288; --red-soft:#3b1a1b;
+      --green:#3fcb8e; --green-soft:#123526; --amber:#e4ac52; --amber-soft:#3a2a10;
+      --shadow-1:0 1px 2px rgba(0,0,0,.5); --shadow-2:0 14px 34px rgba(0,0,0,.55);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#141210; --surface:#1e1b18; --surface-tint:#2a1a19;
+    --ink:#f3efe8; --ink-soft:#b6aca0; --line:#33302a;
+    --red:#ff5a63; --red-dark:#ff8288; --red-soft:#3b1a1b;
+    --green:#3fcb8e; --green-soft:#123526; --amber:#e4ac52; --amber-soft:#3a2a10;
+    --shadow-1:0 1px 2px rgba(0,0,0,.5); --shadow-2:0 14px 34px rgba(0,0,0,.55);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Public Sans',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{ font-family:'Archivo',sans-serif; font-weight:800; letter-spacing:-.01em; text-wrap:balance; margin:0; }
+  .mono{ font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums; }
+  p{ margin:0; }
+  button{ font-family:inherit; }
+  :focus-visible{ outline:2px solid var(--red); outline-offset:2px; }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001ms !important; transition-duration:.001ms !important; } }
+
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:16px; }
+  .btn{ font-size:14px; font-weight:700; padding:11px 18px; border-radius:999px; border:1.5px solid transparent; cursor:pointer; transition:transform .1s ease, opacity .15s ease; }
+  .btn:active{ transform:scale(.98); }
+  .btn-block{ width:100%; }
+  .btn-primary{ background:var(--red); color:#fff; }
+  .btn-primary:hover{ opacity:.92; }
+  .btn-ghost{ background:transparent; color:var(--ink); border-color:var(--line); }
+  .btn-danger{ background:var(--red); color:#fff; }
+  .btn-sm{ padding:7px 12px; font-size:12.5px; }
+
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field-label{ font-size:12px; font-weight:600; color:var(--ink-soft); }
+  .field input, .field select{
+    font:inherit; font-size:14.5px; padding:11px 13px; border-radius:var(--radius-s);
+    border:1.5px solid var(--line); background:var(--surface); color:var(--ink); width:100%;
+  }
+  .field input:focus, .field select:focus{ border-color:var(--red); }
+  .field-error{ font-size:12.5px; color:var(--red); min-height:15px; }
+
+  .pill{ font-size:11px; font-weight:700; padding:3px 9px; border-radius:999px; white-space:nowrap; display:inline-block; }
+  .pill-available{ background:var(--green-soft); color:var(--green); }
+  .pill-inuse{ background:var(--line); color:var(--ink-soft); }
+  .pill-maintenance{ background:var(--amber-soft); color:var(--amber); }
+  .pill-active{ background:var(--green-soft); color:var(--green); }
+  .pill-inactive{ background:var(--line); color:var(--ink-soft); }
+  .pill-scheduled{ background:var(--amber-soft); color:var(--amber); }
+  .pill-progress{ background:var(--red-soft); color:var(--red); }
+  .pill-completed{ background:var(--green-soft); color:var(--green); }
+
+  .status-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+  .status-dot.green{ background:var(--green); }
+  .status-dot.amber{ background:var(--amber); }
+  .status-dot.gray{ background:var(--ink-soft); }
+  .status-dot.red{ background:var(--red); }
+
+  .chip{ font-size:12.5px; font-weight:600; padding:7px 13px; border-radius:999px; border:1.5px solid var(--line); background:var(--surface); color:var(--ink-soft); cursor:pointer; }
+  .chip.active{ background:var(--ink); color:var(--surface); border-color:var(--ink); }
+
+  /* ---------- Login ---------- */
+  .login-screen{
+    min-height:100vh; width:100%; display:flex; align-items:center; justify-content:center;
+    padding:32px 24px;
+    background: radial-gradient(120% 90% at 50% -10%, rgba(216,30,44,.16) 0%, transparent 55%), #17140f;
+  }
+  .login-wrap{ width:100%; max-width:380px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+  .login-logo{ height:34px; width:auto; margin-bottom:14px; filter:brightness(0) invert(1); }
+  .login-kicker{ font-size:12.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#ff5a63; }
+  .login-title{ font-size:26px; color:#fff; margin-top:6px; }
+  .login-sub{ color:#b6aca0; font-size:13.5px; margin-top:6px; margin-bottom:10px; }
+  .login-form{ width:100%; display:flex; flex-direction:column; gap:14px; }
+  .login-form .field-label{ color:#b6aca0; }
+  .login-form input{ background:#201c19; border-color:#33302a; color:#f3efe8; }
+  .login-hint{ font-size:12px; color:#756b5e; margin-top:16px; }
+
+  /* ---------- Shell ---------- */
+  .admin-shell{ width:100%; min-height:100vh; display:none; background:var(--bg); color:var(--ink); }
+  .admin-shell.show{ display:flex; }
+  .admin-sidebar{
+    flex:none; width:248px; background:var(--surface); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; padding:22px 14px; position:sticky; top:0; height:100vh;
+  }
+  .admin-brand{ display:flex; align-items:center; gap:10px; padding:6px 12px 24px; }
+  .admin-brand img{ height:22px; width:auto; }
+  .admin-brand-label{ font-size:11px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.06em; }
+  .admin-nav{ display:flex; flex-direction:column; gap:3px; flex:1; }
+  .admin-navitem{
+    display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:var(--radius-s);
+    color:var(--ink-soft); font-size:14px; font-weight:600; cursor:pointer; border:none; background:none;
+    width:100%; text-align:left;
+  }
+  .admin-navitem svg{ width:19px; height:19px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  .admin-navitem:hover{ background:var(--bg); color:var(--ink); }
+  .admin-navitem.active{ background:var(--red-soft); color:var(--red); }
+  .admin-sidebar-footer{ border-top:1px solid var(--line); padding-top:14px; margin-top:10px; }
+  .admin-account{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--radius-s); }
+  .admin-account-avatar{ width:36px; height:36px; border-radius:50%; background:var(--ink); color:var(--surface); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex:none; }
+  .admin-account-name{ font-size:13px; font-weight:700; line-height:1.3; }
+  .admin-account-role{ font-size:11px; color:var(--ink-soft); }
+  .admin-signout{ margin-top:8px; width:100%; background:none; border:1.5px solid var(--line); border-radius:var(--radius-s); padding:8px 10px; font-size:12.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; }
+  .admin-signout:hover{ border-color:var(--red); color:var(--red); }
+
+  .admin-main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .admin-topbar{ position:sticky; top:0; z-index:5; background:var(--surface); border-bottom:1px solid var(--line); padding:18px 32px; display:flex; align-items:center; gap:14px; }
+  .admin-topbar-title{ font-size:13px; font-weight:700; color:var(--ink-soft); }
+  .admin-topbar-bell{ margin-left:auto; }
+  .admin-content{ flex:1; padding:28px 32px 60px; display:flex; flex-direction:column; gap:22px; max-width:1320px; width:100%; }
+
+  .page-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .page-title{ font-size:24px; }
+  .page-subtitle{ color:var(--ink-soft); font-size:13.5px; margin-top:4px; }
+
+  .kpi-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+  .kpi-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); padding:18px; display:flex; flex-direction:column; gap:10px; }
+  .kpi-icon{ width:38px; height:38px; border-radius:10px; background:var(--red-soft); display:flex; align-items:center; justify-content:center; }
+  .kpi-icon svg{ width:19px; height:19px; stroke:var(--red); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .kpi-val{ font-size:26px; font-weight:700; }
+  .kpi-label{ font-size:12.5px; color:var(--ink-soft); }
+  .kpi-trend{ font-size:11.5px; font-weight:700; }
+  .kpi-trend.up{ color:var(--green); }
+
+  .table-toolbar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:space-between; }
+  .toolbar-filters{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .search-input{ display:flex; align-items:center; gap:8px; background:var(--surface); border:1.5px solid var(--line); border-radius:var(--radius-s); padding:8px 12px; min-width:220px; }
+  .search-input svg{ width:15px; height:15px; stroke:var(--ink-soft); fill:none; stroke-width:2; flex:none; }
+  .search-input input{ border:none; outline:none; font:inherit; font-size:13.5px; background:transparent; color:var(--ink); width:100%; }
+
+  .table-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m); overflow:hidden; }
+  .table-scroll{ overflow-x:auto; }
+  .data-table{ width:100%; border-collapse:collapse; min-width:640px; }
+  .data-table th{ text-align:left; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-soft); padding:12px 18px; background:var(--bg); border-bottom:1px solid var(--line); white-space:nowrap; }
+  .data-table td{ padding:13px 18px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .data-table tbody tr:last-child td{ border-bottom:none; }
+  .data-table tbody tr:hover{ background:var(--surface-tint); }
+  .cell-primary{ font-weight:700; }
+  .cell-sub{ font-size:12px; color:var(--ink-soft); margin-top:2px; }
+  .row-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  .row-avatar{ width:34px; height:34px; border-radius:50%; background:var(--surface-tint); color:var(--red); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex:none; }
+  .icon-btn{ width:30px; height:30px; border-radius:var(--radius-s); border:1.5px solid var(--line); background:var(--surface); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink-soft); }
+  .icon-btn:hover{ border-color:var(--red); color:var(--red); }
+  .icon-btn svg{ width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .empty-state{ padding:48px 20px; text-align:center; color:var(--ink-soft); font-size:13.5px; }
+
+  .drawer-backdrop{ position:fixed; inset:0; background:rgba(20,18,16,.45); display:flex; justify-content:flex-end; z-index:30; }
+  .drawer-backdrop.modal-center{ justify-content:center; align-items:center; }
+  .drawer{ width:100%; max-width:440px; background:var(--surface); height:100%; padding:26px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; box-shadow:var(--shadow-2); }
+  .modal{ width:100%; max-width:380px; background:var(--surface); border-radius:var(--radius-l); padding:22px; display:flex; flex-direction:column; gap:14px; margin:auto; }
+  .drawer-head{ display:flex; align-items:flex-start; justify-content:space-between; }
+  .drawer-close{ background:none; border:none; cursor:pointer; color:var(--ink-soft); width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+  .drawer-close:hover{ background:var(--bg); color:var(--ink); }
+  .drawer-close svg{ width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; }
+  .form-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-grid .field-full{ grid-column:1/-1; }
+  .drawer-actions{ display:flex; gap:10px; margin-top:auto; padding-top:10px; }
+  .drawer-actions .btn{ flex:1; }
+  .drawer-note{ font-size:12px; color:var(--ink-soft); line-height:1.5; background:var(--surface-tint); padding:10px 12px; border-radius:var(--radius-s); }
+  .ocpp-divider{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-soft); border-top:1px solid var(--line); padding-top:14px; }
+  .endpoint-preview{ font-size:12.5px; background:var(--surface-tint); border-radius:var(--radius-s); padding:10px 12px; color:var(--ink-soft); word-break:break-all; }
+  .test-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .test-status{ font-size:12.5px; color:var(--ink-soft); }
+  .test-status.ok{ color:var(--green); display:flex; align-items:center; }
+  .modal-actions{ display:flex; gap:10px; }
+  .modal-actions .btn{ flex:1; }
+
+  .section-card-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+  .section-card-head h3{ font-size:15px; }
+  .two-col{ display:grid; grid-template-columns:1.4fr 1fr; gap:20px; align-items:start; }
+  .activity-list{ display:flex; flex-direction:column; gap:16px; }
+  .activity-row{ display:flex; gap:10px; align-items:flex-start; }
+  .activity-dot{ width:7px; height:7px; border-radius:50%; background:var(--red); margin-top:6px; flex:none; }
+  .activity-text{ font-size:13px; line-height:1.4; }
+  .activity-time{ font-size:11.5px; color:var(--ink-soft); margin-top:2px; }
+  .chart-head{ display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:4px 12px; margin-bottom:12px; }
+  .chart-head span{ font-size:11.5px; color:var(--ink-soft); }
+  .usage-chart{ display:flex; align-items:flex-end; gap:10px; height:130px; }
+  .usage-bar{ flex:1; background:var(--red); border-radius:4px 4px 0 0; opacity:.85; }
+  .usage-bar:last-child{ opacity:1; }
+  .chart-labels{ display:flex; gap:10px; margin-top:8px; }
+  .chart-labels span{ flex:1; text-align:center; font-size:10.5px; color:var(--ink-soft); }
+  .insight-card{ display:flex; gap:12px; align-items:flex-start; background:var(--surface-tint); border:1px solid var(--red-soft); }
+  .insight-card svg{ width:20px; height:20px; flex:none; stroke:var(--red); fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; margin-top:1px; }
+  .insight-card p{ font-size:13px; line-height:1.5; }
+  .hbar-list{ display:flex; flex-direction:column; gap:14px; }
+  .hbar-row{ display:grid; grid-template-columns:160px 1fr 70px; align-items:center; gap:12px; }
+  .hbar-label{ display:flex; flex-direction:column; }
+  .hbar-track{ height:8px; background:var(--line); border-radius:999px; overflow:hidden; }
+  .hbar-fill{ height:100%; background:var(--red); border-radius:999px; }
+  .hbar-fill.amber{ background:var(--amber); }
+  .hbar-val{ text-align:right; font-size:12.5px; color:var(--ink-soft); }
+
+  .toast{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:60; background:var(--ink); color:var(--surface); font-size:13px; font-weight:600; padding:11px 18px; border-radius:999px; box-shadow:var(--shadow-2); max-width:88%; text-align:center; }
+
+  .menu-btn{ background:none; border:1.5px solid var(--line); border-radius:var(--radius-s); width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink); }
+  .menu-btn svg{ width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; }
+  .sidebar-scrim{ position:fixed; inset:0; background:rgba(20,18,16,.4); z-index:35; }
+
+  @media (max-width:1080px){ .two-col{ grid-template-columns:1fr; } }
+  @media (max-width:860px){
+    .admin-sidebar{ position:fixed; left:0; top:0; z-index:40; transform:translateX(-100%); transition:transform .2s ease; box-shadow:var(--shadow-2); }
+    .admin-sidebar.open{ transform:translateX(0); }
+    .admin-topbar{ padding:16px 18px; }
+    .admin-content{ padding:20px 18px 48px; }
+    .form-grid{ grid-template-columns:1fr; }
+    .hbar-row{ grid-template-columns:110px 1fr 60px; }
+  }
+  @media (min-width:861px){ .menu-btn{ display:none; } }
+
+  [hidden]{ display:none !important; }
+</style>
+
+<div id="root">
+
+  <section id="screen-login" class="login-screen">
+    <div class="login-wrap">
+      <img class="login-logo" src="data:image/png;base64,LOGOBASE64" alt="Tasco Berhad">
+      <div class="login-kicker">Back Office Portal</div>
+      <h1 class="login-title">Sign in to manage the fleet</h1>
+      <p class="login-sub">Accounts, chargers, maintenance and usage — all in one place.</p>
+      <form id="login-form" class="login-form">
+        <label class="field">
+          <span class="field-label">Work email</span>
+          <input id="login-email" type="email" value="admin@tasco.com" autocomplete="username" required>
+        </label>
+        <label class="field">
+          <span class="field-label">Password</span>
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </label>
+        <div class="field-error" id="login-error"></div>
+        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      </form>
+      <p class="login-hint">Demo build — this signs you in as Alicia Tan without checking a real directory.</p>
+    </div>
+  </section>
+
+  <div id="admin-shell" class="admin-shell">
+    <div id="sidebar-scrim" class="sidebar-scrim" hidden></div>
+    <aside id="admin-sidebar" class="admin-sidebar">
+      <div class="admin-brand">
+        <img src="data:image/png;base64,LOGOBASE64" alt="Tasco Berhad">
+        <span class="admin-brand-label">Back Office</span>
+      </div>
+      <nav class="admin-nav" id="admin-nav"></nav>
+      <div class="admin-sidebar-footer">
+        <div class="admin-account">
+          <div class="admin-account-avatar">AT</div>
+          <div>
+            <div class="admin-account-name">Alicia Tan</div>
+            <div class="admin-account-role">Super Admin</div>
+          </div>
+        </div>
+        <button class="admin-signout" id="signout-btn">Sign out</button>
+      </div>
+    </aside>
+
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <button class="menu-btn" id="menu-btn" aria-label="Open menu">
+          <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <span class="admin-topbar-title">Tasco Charge · Back Office Portal</span>
+        <button class="icon-btn admin-topbar-bell" aria-label="Alerts">
+          <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+        </button>
+      </header>
+      <div id="page-outlet" class="admin-content"></div>
+    </div>
+  </div>
+
+  <div id="drawer-root"></div>
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script>
+(function(){
+  var $ = function(sel, root){ return (root||document).querySelector(sel); };
+  var $$ = function(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); };
+
+  /* ================= DATA ================= */
+  var ChargerStatus = { Available:'Available', Occupied:'Occupied', Charging:'Charging', Faulted:'Faulted', Unavailable:'Unavailable', Offline:'Offline' };
+
+  var state = {
+    employees: [
+      { id:1, employeeCode:'EMP-0001', fullName:'Alicia Tan', email:'admin@tasco.com', department:'Facilities & Operations', status:'Active', vehicleSummary:'Not registered', createdAtUtc:'2026-01-05' },
+      { id:2, employeeCode:'EMP-0014', fullName:'Nur Aisyah binti Rahman', email:'nur.aisyah@tasco.com', department:'Finance', status:'Active', vehicleSummary:'BYD Atto 3 · CCS2', createdAtUtc:'2025-11-02' },
+      { id:3, employeeCode:'EMP-0022', fullName:'Kevin Tan Wei Loon', email:'kevin.tan@tasco.com', department:'IT', status:'Active', vehicleSummary:'Tesla Model 3 · CCS2', createdAtUtc:'2025-06-18' },
+      { id:4, employeeCode:'EMP-0031', fullName:'Siti Zulaikha binti Kamal', email:'siti.zulaikha@tasco.com', department:'Human Resources', status:'Inactive', vehicleSummary:'Not registered', createdAtUtc:'2026-06-30' },
+      { id:5, employeeCode:'EMP-0037', fullName:'Muhammad Haziq bin Rahim', email:'haziq.rahim@tasco.com', department:'Logistics', status:'Active', vehicleSummary:'ORA Good Cat · Type2', createdAtUtc:'2026-01-22' },
+      { id:6, employeeCode:'EMP-0045', fullName:'Lee Mei Ling', email:'mei.ling@tasco.com', department:'Customer Service', status:'Active', vehicleSummary:'Hyundai Kona Electric · CCS2', createdAtUtc:'2026-08-04' }
+    ],
+    chargers: [
+      { id:1, chargePointId:'HQ-PODIUM-01', name:'HQ Podium Charger 1', siteName:'Tasco HQ Podium Car Park', status:ChargerStatus.Available, ocppVersion:'OCPP 1.6-J', endpointUrl:'wss://ocpp.tasco.com/1.6/HQ-PODIUM-01', authMode:'Basic Auth', maxPowerKW:22, connector:'Type2', lastHeartbeat:'2 min ago' },
+      { id:2, chargePointId:'HQ-PODIUM-02', name:'HQ Podium Charger 2', siteName:'Tasco HQ Podium Car Park', status:ChargerStatus.Charging, ocppVersion:'OCPP 1.6-J', endpointUrl:'wss://ocpp.tasco.com/1.6/HQ-PODIUM-02', authMode:'Basic Auth', maxPowerKW:60, connector:'CCS2', lastHeartbeat:'Just now' },
+      { id:3, chargePointId:'DEPOT-FAST-01', name:'Depot Fast Charger 1', siteName:'Tasco Logistics Hub Depot', status:ChargerStatus.Faulted, ocppVersion:'OCPP 2.0.1', endpointUrl:'wss://ocpp.tasco.com/2.0.1/DEPOT-FAST-01', authMode:'TLS Client Certificate', maxPowerKW:120, connector:'CCS2', lastHeartbeat:'3 hours ago', maintenanceNote:'Connector fault reported — engineer dispatched' },
+      { id:4, chargePointId:'DEPOT-FAST-02', name:'Depot Fast Charger 2', siteName:'Tasco Logistics Hub Depot', status:ChargerStatus.Available, ocppVersion:'OCPP 2.0.1', endpointUrl:'wss://ocpp.tasco.com/2.0.1/DEPOT-FAST-02', authMode:'TLS Client Certificate', maxPowerKW:120, connector:'CCS2', lastHeartbeat:'1 min ago' }
+    ],
+    maintenance: [
+      { id:1, chargerName:'Depot Fast Charger 1', siteName:'Tasco Logistics Hub Depot', startDate:'2026-09-19', endDate:'2026-09-24', reason:'Connector fault — replacement in progress', status:'In Progress' },
+      { id:2, chargerName:'HQ Podium Charger 1', siteName:'Tasco HQ Podium Car Park', startDate:'2026-09-30', endDate:'2026-09-30', reason:'Firmware update to OCPP 1.6-J patch 4', status:'Scheduled' },
+      { id:3, chargerName:'HQ Podium Charger 2', siteName:'Tasco HQ Podium Car Park', startDate:'2026-09-05', endDate:'2026-09-05', reason:'Routine quarterly inspection', status:'Completed' },
+      { id:4, chargerName:'Depot Fast Charger 2', siteName:'Tasco Logistics Hub Depot', startDate:'2026-08-14', endDate:'2026-08-14', reason:'Cable housing repair', status:'Completed' }
+    ],
+    sessions: [
+      { id:1, employeeName:'Nur Aisyah binti Rahman', chargerName:'HQ Podium Charger 2', siteName:'Tasco HQ Podium Car Park', startedAt:'2026-09-21 08:42', duration:'32m (live)', energyKWh:14.2, status:'Active' },
+      { id:2, employeeName:'Alicia Tan', chargerName:'HQ Podium Charger 1', siteName:'Tasco HQ Podium Car Park', startedAt:'2026-09-16 07:58', duration:'42m', energyKWh:18.4, status:'Completed' },
+      { id:3, employeeName:'Kevin Tan Wei Loon', chargerName:'Depot Fast Charger 2', siteName:'Tasco Logistics Hub Depot', startedAt:'2026-09-15 18:20', duration:'55m', energyKWh:24.1, status:'Completed' },
+      { id:4, employeeName:'Muhammad Haziq bin Rahim', chargerName:'HQ Podium Charger 1', siteName:'Tasco HQ Podium Car Park', startedAt:'2026-09-09 08:05', duration:'38m', energyKWh:16.7, status:'Completed' },
+      { id:5, employeeName:'Lee Mei Ling', chargerName:'Depot Fast Charger 2', siteName:'Tasco Logistics Hub Depot', startedAt:'2026-09-03 17:40', duration:'61m', energyKWh:31.2, status:'Stopped' }
+    ],
+    admins: [
+      { id:1, fullName:'Alicia Tan', email:'admin@tasco.com', roleLabel:'Super Admin', lastLogin:'21 Sep 2026, 08:10' },
+      { id:2, fullName:'Farah Amalina binti Yusof', email:'farah.amalina@tasco.com', roleLabel:'Admin', lastLogin:'19 Sep 2026, 17:44' },
+      { id:3, fullName:'Rajesh Kumar a/l Subramaniam', email:'rajesh.kumar@tasco.com', roleLabel:'Admin', lastLogin:'15 Sep 2026, 09:02' }
+    ],
+    weekly: [
+      {label:'27 Jul', kwh:22.4},{label:'3 Aug', kwh:18.9},{label:'10 Aug', kwh:26.1},{label:'17 Aug', kwh:14.2},
+      {label:'24 Aug', kwh:29.6},{label:'31 Aug', kwh:20.5},{label:'7 Sep', kwh:31.2},{label:'14 Sep', kwh:34.5}
+    ],
+    accountFilter:'all', accountSearch:'',
+    chargerFilter:'all',
+    maintFilter:'all',
+    sessionFilter:'all', sessionSearch:''
+  };
+
+  function nextId(arr){ return Math.max.apply(Math, [0].concat(arr.map(function(x){return x.id;}))) + 1; }
+  function initials(name){ var p = name.split(' ').filter(Boolean); return ((p[0]||'')[0]||'') + ((p[1]||'')[0]||''); }
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function showToast(msg){
+    var t = $('#toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(function(){ t.hidden = true; }, 2600);
+  }
+
+  /* ================= LOGIN ================= */
+  $('#login-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = $('#login-email').value.trim();
+    var pw = $('#login-password').value;
+    if(!email || !pw){ $('#login-error').textContent = 'Enter your admin email and password.'; return; }
+    $('#login-error').textContent = '';
+    $('#screen-login').hidden = true;
+    $('#admin-shell').classList.add('show');
+    navigate('dashboard');
+  });
+  $('#signout-btn').addEventListener('click', function(){
+    $('#admin-shell').classList.remove('show');
+    $('#screen-login').hidden = false;
+    $('#login-password').value = '';
+  });
+
+  /* ================= NAV / ROUTER ================= */
+  var navItems = [
+    { key:'dashboard', label:'Dashboard', icon:'M4 11 12 4l8 7 M6 10v9a1 1 0 0 0 1 1h3v-6h4v6h3a1 1 0 0 0 1-1v-9' },
+    { key:'accounts', label:'Employee Accounts', icon:'M8 8a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z M2.5 19c1-4 3.4-6 5.5-6s4.5 2 5.5 6 M16.5 8a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z M15 13c1.8.4 3.6 2.1 4.5 6h-3.3' },
+    { key:'chargers', label:'Chargers & OCPP', icon:'M7 3v4 M13 3v4 M5 7h10l-1 6H6L5 7Z M8 13v3a2 2 0 0 0 2 2h1 M17 10h1a2 2 0 0 1 2 2v4a1.5 1.5 0 0 1-3 0v-2' },
+    { key:'maintenance', label:'Maintenance', icon:'M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l1 1 5.3-5.3a4 4 0 0 1 5.4-5.4l-2.3 2.3 1.7 1.7 2.3-2.3Z' },
+    { key:'sessions', label:'Sessions', icon:'M12 3a9 9 0 1 0 9 9 M12 3v9l6 3' },
+    { key:'reports', label:'Reports & Analytics', icon:'M5 19V10 M12 19V5 M19 19v-7' },
+    { key:'admins', label:'Admin Users', icon:'M12 2 4 5v6c0 5 3.4 8.4 8 9 4.6-.6 8-4 8-9V5l-8-3Z M9.5 12l1.8 1.8L15 10' }
+  ];
+  var current = 'dashboard';
+
+  function renderNav(){
+    $('#admin-nav').innerHTML = navItems.map(function(n){
+      return '<button type="button" class="admin-navitem'+(n.key===current?' active':'')+'" data-nav="'+n.key+'">' +
+        '<svg viewBox="0 0 24 24"><path d="'+n.icon+'"/></svg>' + n.label + '</button>';
+    }).join('');
+    $$('.admin-navitem').forEach(function(btn){
+      btn.addEventListener('click', function(){ navigate(btn.getAttribute('data-nav')); closeSidebar(); });
+    });
+  }
+
+  var renderers = {
+    dashboard: renderDashboard, accounts: renderAccounts, chargers: renderChargers,
+    maintenance: renderMaintenance, sessions: renderSessions, reports: renderReports, admins: renderAdmins
+  };
+
+  function navigate(key){
+    current = key;
+    renderNav();
+    renderers[key]();
+  }
+
+  $('#menu-btn').addEventListener('click', function(){ openSidebar(); });
+  $('#sidebar-scrim').addEventListener('click', function(){ closeSidebar(); });
+  function openSidebar(){ $('#admin-sidebar').classList.add('open'); $('#sidebar-scrim').hidden = false; }
+  function closeSidebar(){ $('#admin-sidebar').classList.remove('open'); $('#sidebar-scrim').hidden = true; }
+
+  function statusMeta(status){
+    switch(status){
+      case ChargerStatus.Available: return { label:'Available', dot:'green', pill:'pill-available' };
+      case ChargerStatus.Charging: return { label:'Charging', dot:'green', pill:'pill-available' };
+      case ChargerStatus.Occupied: return { label:'In use', dot:'gray', pill:'pill-inuse' };
+      case ChargerStatus.Faulted: return { label:'Fault', dot:'red', pill:'pill-maintenance' };
+      default: return { label:'Offline', dot:'gray', pill:'pill-inuse' };
+    }
+  }
+  function maintPill(status){
+    if(status==='Scheduled') return 'pill-scheduled';
+    if(status==='In Progress') return 'pill-progress';
+    return 'pill-completed';
+  }
+  function sessionPill(status){
+    if(status==='Active') return 'pill-available';
+    if(status==='Stopped') return 'pill-maintenance';
+    return 'pill-inuse';
+  }
+
+  function drawBarChart(series, height){
+    var max = Math.max.apply(Math, series.map(function(w){return w.kwh;}));
+    var bars = series.map(function(w,i){
+      return '<div class="usage-bar" style="height:'+((w.kwh/max)*height)+'px" title="'+w.label+': '+w.kwh+' kWh; opacity:'+(i===series.length-1?1:0.85)+'"></div>';
+    }).join('');
+    var labels = series.map(function(w){ return '<span>'+w.label+'</span>'; }).join('');
+    return '<div class="usage-chart">'+bars+'</div><div class="chart-labels">'+labels+'</div>';
+  }
+
+  /* ================= DASHBOARD ================= */
+  function renderDashboard(){
+    var totalChargers = state.chargers.length;
+    var availableCount = state.chargers.filter(function(c){ return c.status===ChargerStatus.Available; }).length;
+    var activeSessions = state.sessions.filter(function(s){ return s.status==='Active'; }).length;
+    var activeEmployees = state.employees.filter(function(e){ return e.status==='Active'; }).length;
+    var pendingMaintenance = state.maintenance.filter(function(m){ return m.status==='Scheduled' || m.status==='In Progress'; }).length;
+    var monthEnergy = state.sessions.reduce(function(s,x){ return s+x.energyKWh; }, 0).toFixed(1);
+
+    var chargerRows = state.chargers.map(function(c){
+      var m = statusMeta(c.status);
+      return '<tr><td class="cell-primary">'+c.name+'</td><td>'+c.siteName+'</td><td>'+c.ocppVersion+'</td>' +
+        '<td><span class="status-dot '+m.dot+'"></span><span class="pill '+m.pill+'">'+m.label+'</span></td>' +
+        '<td>'+c.lastHeartbeat+'</td></tr>';
+    }).join('');
+
+    var activity = [
+      { text:'HQ Podium Charger 2 started a session for Nur Aisyah binti Rahman', time:'8 min ago' },
+      { text:'Depot Fast Charger 1 flagged a fault — engineer dispatched', time:'2 hours ago' },
+      { text:'HR provisioned a new account for Lee Mei Ling', time:'Yesterday' },
+      { text:'Depot Fast Charger 2 completed a 61-minute session (31.2 kWh)', time:'3 days ago' }
+    ].map(function(a){
+      return '<div class="activity-row"><div class="activity-dot"></div><div><div class="activity-text">'+a.text+'</div><div class="activity-time">'+a.time+'</div></div></div>';
+    }).join('');
+
+    $('#page-outlet').innerHTML =
+      '<div class="page-head"><div><h1 class="page-title">Dashboard</h1>' +
+      '<p class="page-subtitle">Fleet overview across all Tasco Berhad sites · Monday, 21 September 2026</p></div></div>' +
+      '<div class="kpi-grid">' +
+        kpiCard('M7 3v4M13 3v4M5 7h10l-1 6H6L5 7Z M8 13v3a2 2 0 0 0 2 2h1', totalChargers, availableCount+' available now') +
+        kpiCard('M13 2 4 14h6l-1 8 9-12h-6l1-8Z', activeSessions, 'Active charging sessions') +
+        kpiCard('M5 19V10M12 19V5M19 19v-7', monthEnergy+' kWh', 'Energy delivered this month', 'Up 41% vs August') +
+        kpiCard('M8 8a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z M2.5 19c1-4 3.4-6 5.5-6s4.5 2 5.5 6', activeEmployees, 'Active employee accounts') +
+        kpiCard('M14.7 6.3a4 4 0 0 1-5.4 5.4L4 17l1 1 5.3-5.3a4 4 0 0 1 5.4-5.4l-2.3 2.3 1.7 1.7 2.3-2.3Z', pendingMaintenance, 'Maintenance scheduled / in progress') +
+      '</div>' +
+      '<div class="two-col">' +
+        '<div class="table-card"><div style="padding:18px 18px 4px"><div class="section-card-head"><h3>Charger status</h3>' +
+        '<a href="#" class="btn-link" id="link-manage-chargers" style="color:var(--red);font-weight:700;font-size:12.5px;text-decoration:none">Manage chargers</a></div></div>' +
+        '<div class="table-scroll"><table class="data-table"><thead><tr><th>Charger</th><th>Site</th><th>OCPP</th><th>Status</th><th>Last heartbeat</th></tr></thead>' +
+        '<tbody>'+chargerRows+'</tbody></table></div></div>' +
+        '<div class="card"><h3 style="margin-bottom:14px">Recent activity</h3><div class="activity-list">'+activity+'</div></div>' +
+      '</div>' +
+      '<div class="card"><div class="chart-head"><h3>Weekly energy delivered — all sites</h3><span>Last 8 weeks</span></div>' +
+      drawBarChart(state.weekly, 120) + '</div>';
+
+    $('#link-manage-chargers').addEventListener('click', function(e){ e.preventDefault(); navigate('chargers'); });
+  }
+  function kpiCard(path, val, label, trend){
+    return '<div class="kpi-card"><div class="kpi-icon"><svg viewBox="0 0 24 24"><path d="'+path+'"/></svg></div>' +
+      '<div class="kpi-val">'+val+'</div><div class="kpi-label">'+label+'</div>' +
+      (trend ? '<div class="kpi-trend up">'+trend+'</div>' : '') + '</div>';
+  }
+
+  /* ================= EMPLOYEE ACCOUNTS ================= */
+  function filteredEmployees(){
+    return state.employees.filter(function(e){
+      var matchesStatus = state.accountFilter==='all' || e.status===state.accountFilter;
+      var q = state.accountSearch.trim().toLowerCase();
+      var matchesSearch = !q || e.fullName.toLowerCase().indexOf(q)>-1 || e.employeeCode.toLowerCase().indexOf(q)>-1 || e.email.toLowerCase().indexOf(q)>-1;
+      return matchesStatus && matchesSearch;
+    });
+  }
+
+  function renderAccounts(){
+    var rows = filteredEmployees().map(function(e){
+      return '<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="row-avatar">'+initials(e.fullName)+'</div>' +
+        '<div><div class="cell-primary">'+e.fullName+'</div><div class="cell-sub">'+e.employeeCode+' · '+e.email+'</div></div></div></td>' +
+        '<td>'+e.department+'</td><td>'+e.vehicleSummary+'</td>' +
+        '<td><span class="pill '+(e.status==='Active'?'pill-active':'pill-inactive')+'">'+e.status+'</span></td>' +
+        '<td>'+e.createdAtUtc+'</td>' +
+        '<td><div class="row-actions">' +
+          '<button class="icon-btn" title="Edit" data-edit="'+e.id+'"><svg viewBox="0 0 24 24"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17v3Z"/></svg></button>' +
+          '<button class="icon-btn" title="Toggle status" data-toggle="'+e.id+'"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button>' +
+        '</div></td></tr>';
+    }).join('');
+
+    $('#page-outlet').innerHTML =
+      '<div class="page-head"><div><h1 class="page-title">Employee Accounts</h1>' +
+      '<p class="page-subtitle">Create and manage employee access to Tasco DC chargers.</p></div>' +
+      '<button class="btn btn-primary" id="btn-add-employee">+ Add employee</button></div>' +
+      '<div class="table-toolbar">' +
+        '<div class="search-input"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>' +
+        '<input id="account-search" type="text" placeholder="Search name, employee ID or email" value="'+esc(state.accountSearch)+'"></div>' +
+        '<div class="toolbar-filters">' +
+          chipBtn('acct-all','All', state.accountFilter==='all') + chipBtn('acct-Active','Active', state.accountFilter==='Active') + chipBtn('acct-Inactive','Inactive', state.accountFilter==='Inactive') +
+        '</div></div>' +
+      '<div class="table-card"><div class="table-scroll"><table class="data-table"><thead><tr><th>Employee</th><th>Department</th><th>Vehicle</th><th>Status</th><th>Joined</th><th></th></tr></thead>' +
+      '<tbody>'+(rows || '')+'</tbody></table>' +
+      (rows ? '' : '<div class="empty-state">No employees match this search.</div>') +
+      '</div></div>';
+
+    $('#btn-add-employee').addEventListener('click', function(){ openEmployeeDrawer(null); });
+    $('#account-search').addEventListener('input', function(e){ state.accountSearch = e.target.value; renderAccounts(); });
+    bindChip('acct-all', function(){ state.accountFilter='all'; renderAccounts(); });
+    bindChip('acct-Active', function(){ state.accountFilter='Active'; renderAccounts(); });
+    bindChip('acct-Inactive', function(){ state.accountFilter='Inactive'; renderAccounts(); });
+    $$('[data-edit]').forEach(function(b){ b.addEventListener('click', function(){ openEmployeeDrawer(Number(b.getAttribute('data-edit'))); }); });
+    $$('[data-toggle]').forEach(function(b){ b.addEventListener('click', function(){
+      var emp = state.employees.find(function(x){ return x.id===Number(b.getAttribute('data-toggle')); });
+      emp.status = emp.status==='Active' ? 'Inactive' : 'Active';
+      renderAccounts();
+    }); });
+  }
+  function chipBtn(id,label,active){ return '<button type="button" class="chip'+(active?' active':'')+'" id="chip-'+id+'">'+label+'</button>'; }
+  function bindChip(id, fn){ var el = $('#chip-'+id); if(el) el.addEventListener('click', fn); }
+
+  function openEmployeeDrawer(id){
+    var emp = id ? state.employees.find(function(e){ return e.id===id; }) : null;
+    var html =
+      '<div class="drawer-backdrop" id="drawer-backdrop"><div class="drawer">' +
+      '<div class="drawer-head"><h3>'+(emp?'Edit employee':'Add employee')+'</h3>' +
+      '<button class="drawer-close" id="drawer-close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
+      '<form class="form-grid" id="employee-form">' +
+        '<label class="field field-full"><span class="field-label">Full name</span><input id="f-fullName" value="'+(emp?esc(emp.fullName):'')+'" required></label>' +
+        '<label class="field"><span class="field-label">Employee ID</span><input id="f-employeeCode" value="'+(emp?esc(emp.employeeCode):'')+'" required></label>' +
+        '<label class="field"><span class="field-label">Department</span><input id="f-department" value="'+(emp?esc(emp.department):'')+'" required></label>' +
+        '<label class="field field-full"><span class="field-label">Work email</span><input id="f-email" type="email" value="'+(emp?esc(emp.email):'')+'" required></label>' +
+        '<label class="field field-full"><span class="field-label">Vehicle (brand, model &amp; connector)</span><input id="f-vehicle" placeholder="e.g. Hyundai Ioniq 5 · CCS2" value="'+(emp?esc(emp.vehicleSummary):'')+'"></label>' +
+        '<p class="field-full drawer-note">A temporary password will be emailed to the employee. They will be asked to set a new one on first login.</p>' +
+        '<div class="drawer-actions field-full"><button type="button" class="btn btn-ghost" id="drawer-cancel">Cancel</button>' +
+        '<button type="submit" class="btn btn-primary">'+(emp?'Save changes':'Create account')+'</button></div>' +
+      '</form></div></div>';
+    $('#drawer-root').innerHTML = html;
+    $('#drawer-close').addEventListener('click', closeDrawer);
+    $('#drawer-cancel').addEventListener('click', closeDrawer);
+    $('#drawer-backdrop').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeDrawer(); });
+    $('#employee-form').addEventListener('submit', function(e){
+      e.preventDefault();
+      var vals = { fullName:$('#f-fullName').value, employeeCode:$('#f-employeeCode').value, department:$('#f-department').value, email:$('#f-email').value, vehicleSummary:$('#f-vehicle').value || 'Not registered' };
+      if(emp){ Object.assign(emp, vals); showToast('Employee details updated.'); }
+      else { vals.id = nextId(state.employees); vals.status='Active'; vals.createdAtUtc = new Date().toISOString().slice(0,10); state.employees.unshift(vals); showToast('Employee account created.'); }
+      closeDrawer(); renderAccounts();
+    });
+  }
+  function closeDrawer(){ $('#drawer-root').innerHTML = ''; }
+
+  /* ================= CHARGERS & OCPP ================= */
+  function filteredChargers(){
+    return state.chargers.filter(function(c){ return state.chargerFilter==='all' || c.status===state.chargerFilter; });
+  }
+  function renderChargers(){
+    var rows = filteredChargers().map(function(c){
+      var m = statusMeta(c.status);
+      return '<tr><td><div class="cell-primary">'+c.name+'</div><div class="cell-sub">'+c.chargePointId+'</div></td>' +
+        '<td>'+c.siteName+'</td><td>'+c.maxPowerKW+' kW</td><td>'+c.ocppVersion+'</td><td>'+c.authMode+'</td>' +
+        '<td><span class="status-dot '+m.dot+'"></span><span class="pill '+m.pill+'">'+m.label+'</span>' +
+        (c.maintenanceNote ? '<div class="cell-sub" style="margin-top:4px;color:var(--amber)">'+c.maintenanceNote+'</div>' : '') + '</td>' +
+        '<td><div class="row-actions"><button class="icon-btn" title="Configure OCPP" data-configure="'+c.id+'">' +
+        '<svg viewBox="0 0 24 24"><path d="M10.3 3.2h3.4l.6 2.3a6.7 6.7 0 0 1 1.9 1.1l2.3-.7 1.7 2.9-1.7 1.6a6.9 6.9 0 0 1 0 2.2l1.7 1.6-1.7 2.9-2.3-.7a6.7 6.7 0 0 1-1.9 1.1l-.6 2.3h-3.4l-.6-2.3a6.7 6.7 0 0 1-1.9-1.1l-2.3.7-1.7-2.9 1.7-1.6a6.9 6.9 0 0 1 0-2.2L4.1 8.8l1.7-2.9 2.3.7a6.7 6.7 0 0 1 1.9-1.1l.6-2.3Z"/><circle cx="12" cy="12" r="2.6"/></svg></button></div></td></tr>';
+    }).join('');
+
+    $('#page-outlet').innerHTML =
+      '<div class="page-head"><div><h1 class="page-title">Chargers &amp; OCPP Configuration</h1>' +
+      '<p class="page-subtitle">Register DC chargers and point them at the correct OCPP endpoint.</p></div>' +
+      '<button class="btn btn-primary" id="btn-add-charger">+ Register charger</button></div>' +
+      '<div class="table-toolbar"><div class="toolbar-filters">' +
+        chipBtn('chg-all','All', state.chargerFilter==='all') +
+        chipBtn('chg-Available','Available', state.chargerFilter===ChargerStatus.Available) +
+        chipBtn('chg-Charging','Charging', state.chargerFilter===ChargerStatus.Charging) +
+        chipBtn('chg-Faulted','Fault', state.chargerFilter===ChargerStatus.Faulted) +
+      '</div></div>' +
+      '<div class="table-card"><div class="table-scroll"><table class="data-table"><thead><tr><th>Charger</th><th>Site</th><th>Rated power</th><th>OCPP</th><th>Auth</th><th>Status</th><th></th></tr></thead>' +
+      '<tbody>'+rows+'</tbody></table></div></div>';
+
+    $('#btn-add-charger').addEventListener('click', function(){ openChargerDrawer(null); });
+    bindChip('chg-all', function(){ state.chargerFilter='all'; renderChargers(); });
+    bindChip('chg-Available', function(){ state.chargerFilter=ChargerStatus.Available; renderChargers(); });
+    bindChip('chg-Charging', function(){ state.chargerFilter=ChargerStatus.Charging; renderChargers(); });
+    bindChip('chg-Faulted', function(){ state.chargerFilter=ChargerStatus.Faulted; renderChargers(); });
+    $$('[data-configure]').forEach(function(b){ b.addEventListener('click', function(){ openChargerDrawer(Number(b.getAttribute('data-configure'))); }); });
+  }
+
+  function openChargerDrawer(id){
+    var c = id ? state.chargers.find(function(x){ return x.id===id; }) : null;
+    var html =
+      '<div class="drawer-backdrop" id="drawer-backdrop"><div class="drawer">' +
+      '<div class="drawer-head"><h3>'+(c?('Configure '+c.name):'Register charger')+'</h3>' +
+      '<button class="drawer-close" id="drawer-close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
+      '<form class="form-grid" id="charger-form">' +
+        '<label class="field"><span class="field-label">Charger name</span><input id="f-name" placeholder="HQ Podium Charger 3" value="'+(c?esc(c.name):'')+'" required></label>' +
+        '<label class="field"><span class="field-label">Site</span><input id="f-site" placeholder="Tasco HQ Podium Car Park" value="'+(c?esc(c.siteName):'')+'" required></label>' +
+        '<label class="field"><span class="field-label">Rated power (kW)</span><input id="f-power" type="number" min="0" value="'+(c?c.maxPowerKW:60)+'" required></label>' +
+        '<label class="field"><span class="field-label">Connector type</span><select id="f-connector">' +
+          ['Type1','Type2','CCS1','CCS2','CHAdeMO','GBT'].map(function(t){ return '<option'+(c&&c.connector===t?' selected':'')+'>'+t+'</option>'; }).join('') +
+        '</select></label>' +
+        '<div class="field-full ocpp-divider">OCPP configuration</div>' +
+        '<label class="field"><span class="field-label">OCPP version</span><select id="f-ocpp">' +
+          '<option'+(!c||c.ocppVersion==='OCPP 1.6-J'?' selected':'')+'>OCPP 1.6-J</option><option'+(c&&c.ocppVersion==='OCPP 2.0.1'?' selected':'')+'>OCPP 2.0.1</option>' +
+        '</select></label>' +
+        '<label class="field"><span class="field-label">Authentication</span><select id="f-auth">' +
+          '<option value="Basic Auth"'+(!c||c.authMode==='Basic Auth'?' selected':'')+'>Basic Auth (password)</option>' +
+          '<option value="TLS Client Certificate"'+(c&&c.authMode==='TLS Client Certificate'?' selected':'')+'>TLS client certificate</option>' +
+        '</select></label>' +
+        '<div class="field field-full"><span class="field-label">WebSocket endpoint</span><div class="endpoint-preview mono" id="endpoint-preview">'+(c?c.endpointUrl:'')+'</div></div>' +
+        '<div class="field-full test-row"><button type="button" class="btn btn-ghost" id="btn-test">Test connection</button><span class="test-status" id="test-status"></span></div>' +
+        '<div class="drawer-actions field-full"><button type="button" class="btn btn-ghost" id="drawer-cancel">Cancel</button>' +
+        '<button type="submit" class="btn btn-primary">'+(c?'Save configuration':'Register charger')+'</button></div>' +
+      '</form></div></div>';
+    $('#drawer-root').innerHTML = html;
+    $('#drawer-close').addEventListener('click', closeDrawer);
+    $('#drawer-cancel').addEventListener('click', closeDrawer);
+    $('#drawer-backdrop').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeDrawer(); });
+
+    function updatePreview(){
+      var version = $('#f-ocpp').value === 'OCPP 1.6-J' ? '1.6' : '2.0.1';
+      var id2 = $('#f-name').value.trim() || 'New Charger';
+      $('#endpoint-preview').textContent = 'wss://ocpp.tasco.com/' + version + '/' + id2;
+    }
+    $('#f-name').addEventListener('input', updatePreview);
+    $('#f-ocpp').addEventListener('change', updatePreview);
+    if(!c) updatePreview();
+
+    $('#btn-test').addEventListener('click', function(){
+      $('#test-status').textContent = 'Connecting…';
+      setTimeout(function(){
+        $('#test-status').innerHTML = '<span class="test-status ok"><span class="status-dot green"></span> Boot notification received</span>';
+      }, 900);
+    });
+
+    $('#charger-form').addEventListener('submit', function(e){
+      e.preventDefault();
+      var vals = { name:$('#f-name').value, siteName:$('#f-site').value, maxPowerKW:Number($('#f-power').value), connector:$('#f-connector').value, ocppVersion:$('#f-ocpp').value, authMode:$('#f-auth').value };
+      var version = vals.ocppVersion === 'OCPP 1.6-J' ? '1.6' : '2.0.1';
+      vals.endpointUrl = 'wss://ocpp.tasco.com/' + version + '/' + vals.name;
+      if(c){ Object.assign(c, vals); showToast('OCPP configuration saved.'); }
+      else { vals.id = nextId(state.chargers); vals.chargePointId = vals.name; vals.status = ChargerStatus.Offline; vals.lastHeartbeat = 'Never connected'; state.chargers.unshift(vals); showToast('Charger registered.'); }
+      closeDrawer(); renderChargers();
+    });
+  }
+
+  /* ================= MAINTENANCE ================= */
+  function filteredMaintenance(){
+    return state.maintenance.filter(function(m){ return state.maintFilter==='all' || m.status===state.maintFilter; })
+      .slice().sort(function(a,b){ return a.startDate < b.startDate ? 1 : -1; });
+  }
+  function renderMaintenance(){
+    var rows = filteredMaintenance().map(function(r){
+      return '<tr><td><div class="cell-primary">'+r.chargerName+'</div><div class="cell-sub">'+r.siteName+'</div></td>' +
+        '<td>'+(r.startDate===r.endDate ? r.startDate : r.startDate+' → '+r.endDate)+'</td>' +
+        '<td>'+r.reason+'</td><td><span class="pill '+maintPill(r.status)+'">'+r.status+'</span></td>' +
+        '<td>'+(r.status!=='Completed' ? '<div class="row-actions"><button class="icon-btn" title="Mark as completed" data-complete="'+r.id+'"><svg viewBox="0 0 24 24"><path d="M4 12.5 9.5 18 20 6"/></svg></button></div>' : '')+'</td></tr>';
+    }).join('');
+
+    $('#page-outlet').innerHTML =
+      '<div class="page-head"><div><h1 class="page-title">Maintenance Scheduling</h1>' +
+      '<p class="page-subtitle">Plan downtime windows — the charger is hidden from employees while under maintenance.</p></div>' +
+      '<button class="btn btn-primary" id="btn-add-maint">+ Schedule maintenance</button></div>' +
+      '<div class="table-toolbar"><div class="toolbar-filters">' +
+        chipBtn('mnt-all','All', state.maintFilter==='all') + chipBtn('mnt-Scheduled','Scheduled', state.maintFilter==='Scheduled') +
+        chipBtn('mnt-InProgress','In progress', state.maintFilter==='In Progress') + chipBtn('mnt-Completed','Completed', state.maintFilter==='Completed') +
+      '</div></div>' +
+      '<div class="table-card"><div class="table-scroll"><table class="data-table"><thead><tr><th>Charger</th><th>Window</th><th>Reason</th><th>Status</th><th></th></tr></thead>' +
+      '<tbody>'+(rows || '')+'</tbody></table>' + (rows ? '' : '<div class="empty-state">No maintenance windows in this filter.</div>') + '</div></div>';
+
+    $('#btn-add-maint').addEventListener('click', openMaintenanceDrawer);
+    bindChip('mnt-all', function(){ state.maintFilter='all'; renderMaintenance(); });
+    bindChip('mnt-Scheduled', function(){ state.maintFilter='Scheduled'; renderMaintenance(); });
+    bindChip('mnt-InProgress', function(){ state.maintFilter='In Progress'; renderMaintenance(); });
+    bindChip('mnt-Completed', function(){ state.maintFilter='Completed'; renderMaintenance(); });
+    $$('[data-complete]').forEach(function(b){ b.addEventListener('click', function(){
+      var row = state.maintenance.find(function(x){ return x.id===Number(b.getAttribute('data-complete')); });
+      row.status = 'Completed'; showToast('Marked as completed.'); renderMaintenance();
+    }); });
+  }
+  function openMaintenanceDrawer(){
+    var options = state.chargers.map(function(c){ return '<option value="'+c.id+'">'+c.name+' · '+c.siteName+'</option>'; }).join('');
+    var html =
+      '<div class="drawer-backdrop" id="drawer-backdrop"><div class="drawer">' +
+      '<div class="drawer-head"><h3>Schedule maintenance</h3><button class="drawer-close" id="drawer-close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
+      '<form class="form-grid" id="maint-form">' +
+        '<label class="field field-full"><span class="field-label">Charger</span><select id="f-charger">'+options+'</select></label>' +
+        '<label class="field"><span class="field-label">Start date</span><input id="f-start" type="date" required></label>' +
+        '<label class="field"><span class="field-label">End date</span><input id="f-end" type="date" required></label>' +
+        '<label class="field field-full"><span class="field-label">Reason</span><input id="f-reason" placeholder="e.g. Firmware update" required></label>' +
+        '<div class="drawer-actions field-full"><button type="button" class="btn btn-ghost" id="drawer-cancel">Cancel</button><button type="submit" class="btn btn-primary">Schedule</button></div>' +
+      '</form></div></div>';
+    $('#drawer-root').innerHTML = html;
+    $('#drawer-close').addEventListener('click', closeDrawer);
+    $('#drawer-cancel').addEventListener('click', closeDrawer);
+    $('#drawer-backdrop').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeDrawer(); });
+    $('#maint-form').addEventListener('submit', function(e){
+      e.preventDefault();
+      var charger = state.chargers.find(function(c){ return c.id===Number($('#f-charger').value); });
+      state.maintenance.unshift({ id:nextId(state.maintenance), chargerName:charger.name, siteName:charger.siteName, startDate:$('#f-start').value, endDate:$('#f-end').value, reason:$('#f-reason').value, status:'Scheduled' });
+      showToast('Maintenance scheduled.'); closeDrawer(); renderMaintenance();
+    });
+  }
+
+  /* ================= SESSIONS ================= */
+  function filteredSessions(){
+    return state.sessions.filter(function(s){
+      var matchesStatus = state.sessionFilter==='all' || s.status===state.sessionFilter;
+      var q = state.sessionSearch.trim().toLowerCase();
+      var matchesSearch = !q || s.employeeName.toLowerCase().indexOf(q)>-1 || s.chargerName.toLowerCase().indexOf(q)>-1 || s.siteName.toLowerCase().indexOf(q)>-1;
+      return matchesStatus && matchesSearch;
+    });
+  }
+  function renderSessions(){
+    var rows = filteredSessions().map(function(s){
+      return '<tr><td class="cell-primary">'+s.employeeName+'</td>' +
+        '<td><div class="cell-primary">'+s.chargerName+'</div><div class="cell-sub">'+s.siteName+'</div></td>' +
+        '<td>'+s.startedAt+'</td><td>'+s.duration+'</td><td>'+s.energyKWh.toFixed(1)+' kWh</td>' +
+        '<td><span class="pill '+sessionPill(s.status)+'">'+s.status+'</span></td>' +
+        '<td><div class="row-actions">'+(s.status==='Active' ? '<button class="btn btn-ghost btn-sm" style="color:var(--red);border-color:var(--red)" data-stop="'+s.id+'">Force stop</button>' : '')+'</div></td></tr>';
+    }).join('');
+
+    $('#page-outlet').innerHTML =
+      '<div class="page-head"><div><h1 class="page-title">Session Monitoring</h1>' +
+      '<p class="page-subtitle">Every charging session across employees and sites.</p></div></div>' +
+      '<div class="table-toolbar">' +
+        '<div class="search-input"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>' +
+        '<input id="session-search" type="text" placeholder="Search employee, charger or site" value="'+esc(state.sessionSearch)+'"></div>' +
+        '<div class="toolbar-filters">' +
+          chipBtn('ses-all','All', state.sessionFilter==='all') + chipBtn('ses-Active','Active', state.sessionFilter==='Active') +
+          chipBtn('ses-Completed','Completed', state.sessionFilter==='Completed') + chipBtn('ses-Stopped','Stopped', state.sessionFilter==='Stopped') +
+        '</div></div>' +
+      '<div class="table-card"><div class="table-scroll"><table class="data-table"><thead><tr><th>Employee</th><th>Charger</th><th>Started</th><th>Duration</th><th>Energy</th><th>Status</th><th></th></tr></thead>' +
+      '<tbody>'+rows+'</tbody></table></div></div>';
+
+    $('#session-search').addEventListener('input', function(e){ state.sessionSearch = e.target.value; renderSessions(); });
+    bindChip('ses-all', function(){ state.sessionFilter='all'; renderSessions(); });
+    bindChip('ses-Active', function(){ state.sessionFilter='Active'; renderSessions(); });
+    bindChip('ses-Completed', function(){ state.sessionFilter='Completed'; renderSessions(); });
+    bindChip('ses-Stopped', function(){ state.sessionFilter='Stopped'; renderSessions(); });
+    $$('[data-stop]').forEach(function(b){ b.addEventListener('click', function(){ confirmForceStop(Number(b.getAttribute('data-stop'))); }); });
+  }
+  function confirmForceStop(id){
+    var html =
+      '<div class="drawer-backdrop modal-center" id="drawer-backdrop"><div class="modal">' +
+      '<h3 style="font-size:18px">Force-stop this session?</h3>' +
+      '<p style="font-size:13px;color:var(--ink-soft)">The employee\'s charging session will end immediately. Use this only if the charger is unresponsive.</p>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" id="drawer-cancel">Cancel</button><button class="btn btn-danger" id="confirm-stop">Force stop</button></div>' +
+      '</div></div>';
+    $('#drawer-root').innerHTML = html;
+    $('#drawer-cancel').addEventListener('click', closeDrawer);
+    $('#drawer-backdrop').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeDrawer(); });
+    $('#confirm-stop').addEventListener('click', function(){
+      var s = state.sessions.find(function(x){ return x.id===id; });
+      s.status = 'Stopped'; s.duration = s.duration.replace(' (live)', ' (force-stopped)');
+      closeDrawer(); showToast('Session force-stopped.'); renderSessions();
+    });
+  }
+
+  /* ================= REPORTS ================= */
+  function renderReports(){
+    var monthTotal = state.sessions.reduce(function(s,x){ return s+x.energyKWh; }, 0);
+    var avg = monthTotal / state.sessions.length;
+    var byCharger = state.chargers.map(function(c){
+      var total = state.sessions.filter(function(s){ return s.chargerName===c.name; }).reduce(function(s,x){ return s+x.energyKWh; }, 0);
+      return { name:c.name, site:c.siteName, total:total };
+    });
+    var maxByCharger = Math.max.apply(Math, byCharger.map(function(c){ return c.total; })) || 1;
+    var peakHours = [ {range:'7:00 - 8:00 AM', pct:68}, {range:'8:00 - 9:00 AM', pct:100}, {range:'5:00 - 6:00 PM', pct:42}, {range:'6:00 - 7:00 PM', pct:57} ];
+
+    $('#page-outlet').innerHTML =
+      '<div class="page-head"><div><h1 class="page-title">Reports &amp; Analytics</h1>' +
+      '<p class="page-subtitle">Power consumption and charging patterns across the fleet.</p></div>' +
+      '<button class="btn btn-ghost" id="btn-export">Export CSV</button></div>' +
+      '<div class="kpi-grid">' +
+        '<div class="kpi-card"><div class="kpi-val">'+monthTotal.toFixed(1)+' kWh</div><div class="kpi-label">This month</div><div class="kpi-trend up">Up 41% vs August</div></div>' +
+        '<div class="kpi-card"><div class="kpi-val">'+avg.toFixed(1)+' kWh</div><div class="kpi-label">Average per session</div></div>' +
+        '<div class="kpi-card"><div class="kpi-val">'+state.sessions.length+'</div><div class="kpi-label">Sessions this month</div></div>' +
+        '<div class="kpi-card"><div class="kpi-val">78%</div><div class="kpi-label">Fleet utilisation (avg)</div></div>' +
+      '</div>' +
+      '<div class="two-col">' +
+        '<div class="card"><div class="chart-head"><h3>Weekly energy delivered</h3><span>Last 8 weeks</span></div>' + drawBarChart(state.weekly, 140) + '</div>' +
+        '<div class="card"><h3 style="margin-bottom:14px">Energy by charger</h3><div class="hbar-list">' +
+          byCharger.map(function(c){
+            return '<div class="hbar-row"><div class="hbar-label"><span class="cell-primary">'+c.name+'</span><span class="cell-sub">'+c.site+'</span></div>' +
+              '<div class="hbar-track"><div class="hbar-fill" style="width:'+((c.total/maxByCharger)*100)+'%"></div></div>' +
+              '<div class="hbar-val mono">'+c.total.toFixed(1)+' kWh</div></div>';
+          }).join('') +
+        '</div></div>' +
+      '</div>' +
+      '<div class="card insight-card"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .8 1.7v.5h5.6v-.5c0-.7.3-1.3.8-1.7A6 6 0 0 0 12 3Z"/></svg>' +
+      '<p>Most sessions start between <b>8:00-9:00 AM</b> on weekdays, right after employees arrive at the Tasco HQ Podium Car Park — consider prioritising maintenance windows outside these hours.</p></div>' +
+      '<div class="card"><h3 style="margin-bottom:14px">Charging pattern — peak hours</h3><div class="hbar-list">' +
+        peakHours.map(function(p){
+          return '<div class="hbar-row"><div class="hbar-label"><span class="cell-primary">'+p.range+'</span></div>' +
+            '<div class="hbar-track"><div class="hbar-fill amber" style="width:'+p.pct+'%"></div></div><div class="hbar-val mono">'+p.pct+'%</div></div>';
+        }).join('') +
+      '</div></div>';
+
+    $('#btn-export').addEventListener('click', function(){ showToast('Export started — this is a UI-only demo.'); });
+  }
+
+  /* ================= ADMIN USERS ================= */
+  function renderAdmins(){
+    var rows = state.admins.map(function(a){
+      return '<tr><td><div style="display:flex;align-items:center;gap:10px"><div class="row-avatar">'+initials(a.fullName)+'</div>' +
+        '<div><div class="cell-primary">'+a.fullName+'</div><div class="cell-sub">'+a.email+'</div></div></div></td>' +
+        '<td><span class="pill '+(a.roleLabel==='Super Admin'?'pill-active':'pill-inuse')+'">'+a.roleLabel+'</span></td>' +
+        '<td>'+a.lastLogin+'</td>' +
+        '<td><div class="row-actions"><button class="icon-btn" title="Remove access" data-remove="'+a.id+'">' +
+        '<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m2 0-.8 12.1a2 2 0 0 1-2 1.9H8.8a2 2 0 0 1-2-1.9L6 7"/></svg></button></div></td></tr>';
+    }).join('');
+
+    $('#page-outlet').innerHTML =
+      '<div class="page-head"><div><h1 class="page-title">Admin Users</h1>' +
+      '<p class="page-subtitle">People who can sign in to this back office portal.</p></div>' +
+      '<button class="btn btn-primary" id="btn-add-admin">+ Add admin</button></div>' +
+      '<div class="table-card"><div class="table-scroll"><table class="data-table"><thead><tr><th>Admin</th><th>Role</th><th>Last login</th><th></th></tr></thead>' +
+      '<tbody>'+rows+'</tbody></table></div></div>';
+
+    $('#btn-add-admin').addEventListener('click', openAdminDrawer);
+    $$('[data-remove]').forEach(function(b){ b.addEventListener('click', function(){ confirmRemoveAdmin(Number(b.getAttribute('data-remove'))); }); });
+  }
+  function openAdminDrawer(){
+    var html =
+      '<div class="drawer-backdrop" id="drawer-backdrop"><div class="drawer">' +
+      '<div class="drawer-head"><h3>Add admin</h3><button class="drawer-close" id="drawer-close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
+      '<form class="form-grid" id="admin-form">' +
+        '<label class="field field-full"><span class="field-label">Full name</span><input id="f-fullName" required></label>' +
+        '<label class="field field-full"><span class="field-label">Work email</span><input id="f-email" type="email" required></label>' +
+        '<label class="field field-full"><span class="field-label">Role</span><select id="f-role"><option>Admin</option><option>Super Admin</option></select></label>' +
+        '<div class="drawer-actions field-full"><button type="button" class="btn btn-ghost" id="drawer-cancel">Cancel</button><button type="submit" class="btn btn-primary">Send invite</button></div>' +
+      '</form></div></div>';
+    $('#drawer-root').innerHTML = html;
+    $('#drawer-close').addEventListener('click', closeDrawer);
+    $('#drawer-cancel').addEventListener('click', closeDrawer);
+    $('#drawer-backdrop').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeDrawer(); });
+    $('#admin-form').addEventListener('submit', function(e){
+      e.preventDefault();
+      state.admins.push({ id:nextId(state.admins), fullName:$('#f-fullName').value, email:$('#f-email').value, roleLabel:$('#f-role').value, lastLogin:'Never signed in' });
+      showToast('Invite sent.'); closeDrawer(); renderAdmins();
+    });
+  }
+  function confirmRemoveAdmin(id){
+    var a = state.admins.find(function(x){ return x.id===id; });
+    var html =
+      '<div class="drawer-backdrop modal-center" id="drawer-backdrop"><div class="modal">' +
+      '<h3 style="font-size:18px">Remove '+a.fullName+'?</h3>' +
+      '<p style="font-size:13px;color:var(--ink-soft)">They will immediately lose access to the back office portal.</p>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" id="drawer-cancel">Cancel</button><button class="btn btn-danger" id="confirm-remove">Remove access</button></div>' +
+      '</div></div>';
+    $('#drawer-root').innerHTML = html;
+    $('#drawer-cancel').addEventListener('click', closeDrawer);
+    $('#drawer-backdrop').addEventListener('click', function(e){ if(e.target===e.currentTarget) closeDrawer(); });
+    $('#confirm-remove').addEventListener('click', function(){
+      state.admins = state.admins.filter(function(x){ return x.id!==id; });
+      closeDrawer(); showToast('Access removed.'); renderAdmins();
+    });
+  }
+
+})();
+</script>
